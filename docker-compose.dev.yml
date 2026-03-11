@@ -1,0 +1,43 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: flow-backend-dev
+    volumes:
+      -  ./backend:/app
+      -  /app/node_modules
+    ports: 
+      - "8000:8000"
+    command: npm run dev
+    env_file: 
+      - ./backend/.env.dev
+    environment:
+      NODE_ENV: development
+  
+  frontend:
+    build: 
+      context: ./frontend
+    container_name: flow-frontend-dev
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: flow-pg-container
+    environment:
+      POSTGRES_USER: flowdev
+      POSTGRES_PASSWORD: mysecretpassword001
+      POSTGRES_DB: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
