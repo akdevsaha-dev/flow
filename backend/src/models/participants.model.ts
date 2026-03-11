@@ -1,7 +1,7 @@
 import { boolean, pgTable, timestamp, unique, uuid } from "drizzle-orm/pg-core";
-import { usersTable } from "./users.model.js";
-import { chatsTable } from "./chats.model.js";
 import { relations } from "drizzle-orm";
+import { usersTable } from "./users.model";
+import { chatsTable } from "./chats.model";
 
 export const participantsTable = pgTable("participants", {
     id: uuid().primaryKey().defaultRandom(),

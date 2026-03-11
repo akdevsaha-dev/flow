@@ -1,6 +1,6 @@
-import { pgTable, timestamp, unique, uuid, varchar } from "drizzle-orm/pg-core"; // All pg-core now!
+import { pgTable, timestamp, unique, uuid, varchar } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { usersTable } from "./users.model.js";
+import { usersTable } from "./users.model";
 
 export const contactsTable = pgTable("contacts", {
     id: uuid().primaryKey().defaultRandom(),
@@ -8,7 +8,7 @@ export const contactsTable = pgTable("contacts", {
     contactId: uuid("contact_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
     nickName: varchar("nickname", { length: 100 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()).notNull(), // Added defaultNow()
+    updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()).notNull(),
 }, (table) => [
     unique("uniqueContact").on(table.ownerId, table.contactId)
 ]);

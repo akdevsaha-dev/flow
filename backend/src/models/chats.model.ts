@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
 import { boolean, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
-import { participantsTable } from "./participants.model.js";
+import { participantsTable } from "./participants.model";
 
 
 export const chatsTable = pgTable("chats", {
