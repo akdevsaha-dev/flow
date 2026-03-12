@@ -1,4 +1,3 @@
-import { db } from '@/config/db';
 import { authenticateUser, createUser } from '@/services/auth.service';
 import { cookies } from '@/utils/cookie';
 import { jwttoken } from '@/utils/jwt';
