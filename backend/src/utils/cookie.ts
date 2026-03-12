@@ -23,6 +23,7 @@ export const cookies = {
   },
 
   clear: (res: Response, name: string, options: CookieOptions = {}) => {
-    res.clearCookie(name, { ...cookies.getOptions(), ...options });
+    const { maxAge: _, ...rest } = cookies.getOptions();
+    res.clearCookie(name, { ...rest, ...options });
   },
 };

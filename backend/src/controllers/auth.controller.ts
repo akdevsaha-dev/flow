@@ -43,6 +43,7 @@ export const signup = async (req: Request, res: Response) => {
     return res.status(status).json({ error: message });
   }
 };
+
 export const signin = async (req: Request, res: Response) => {
   try {
     const validationResult = signInSchema.safeParse(req.body);
@@ -73,6 +74,20 @@ export const signin = async (req: Request, res: Response) => {
     let message = 'Something went wrong';
     const status = 500;
 
+    if (err instanceof Error) {
+      message = err.message;
+    }
+    return res.status(status).json({ error: message });
+  }
+};
+
+export const signout = async (req: Request, res: Response) => {
+  try {
+    cookies.clear(res, 'token');
+    res.status(200).json({ message: 'User signed out' });
+  } catch (err: unknown) {
+    let message = 'Something went wrong';
+    let status = 500;
     if (err instanceof Error) {
       message = err.message;
     }
