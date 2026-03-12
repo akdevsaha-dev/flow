@@ -1,4 +1,4 @@
-import { newChat } from '@/services/chat.servive';
+import { findChats, newChat } from '@/services/chat.servive';
 import { createChatSchema } from '@/validations/chat';
 import type { Response, Request } from 'express';
 
@@ -26,7 +26,22 @@ export const createChat = async (req: Request, res: Response) => {
     });
   } catch (err: unknown) {
     let message = 'Something went wrong';
-    const status = 500;
+    let status = 500;
+    if (err instanceof Error) {
+      message = err.message;
+    }
+    return res.status(status).json({ error: message });
+  }
+};
+
+export const getChats = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user.id;
+    const chats = await findChats({ userId });
+    return res.status(200).json({ chats });
+  } catch (err: unknown) {
+    let message = 'Something went wrong';
+    let status = 500;
 
     if (err instanceof Error) {
       message = err.message;
