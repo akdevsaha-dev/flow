@@ -1,14 +1,9 @@
 import { db } from '@/config/db';
 import { chatsTable } from '@/models/chats.model';
 import { participantsTable } from '@/models/participants.model';
+import type { createChatProps } from '@/types';
 import { eq } from 'drizzle-orm';
 
-interface createChatProps {
-  isGroup: boolean;
-  groupName?: string | undefined;
-  createdBy: string;
-  participants: string[];
-}
 
 export const newChat = async ({
   isGroup,
