@@ -15,6 +15,13 @@
       "when": 1773316260875,
       "tag": "0001_careless_odin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773433986352,
+      "tag": "0002_true_purifiers",
+      "breakpoints": true
     }
   ]
 }
