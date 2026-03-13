@@ -1,17 +1,10 @@
 import { db } from '@/config/db';
 import { usersTable } from '@/models/users.model';
+import type { authenticateUserProps, createUserProps } from '@/types';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 
-interface createUserProps {
-  email: string;
-  password: string;
-  username: string;
-}
-interface authenticateUserProps {
-  email: string;
-  password: string;
-}
+
 
 export const hashPassword = async (password: string) => {
   try {
