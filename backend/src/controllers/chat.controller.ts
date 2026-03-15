@@ -1,6 +1,7 @@
-import { findChats, newChat } from '@/services/chat.servive';
+import { findChats, findMessages, newChat } from '@/services/chat.service';
 import { createChatSchema } from '@/validations/chat';
 import type { Response, Request } from 'express';
+import { string } from 'zod';
 
 export const createChat = async (req: Request, res: Response) => {
   try {
@@ -47,5 +48,24 @@ export const getChats = async (req: Request, res: Response) => {
       message = err.message;
     }
     return res.status(status).json({ error: message });
+  }
+};
+
+export const getMessages = async (req: Request, res: Response) => {
+  try {
+    const chatId = req.params.chatId as string;
+    const cursor = req.query.cursor as string | undefined;
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    const data = await findMessages({
+      chatId,
+      cursor,
+      limit,
+    });
+
+    res.json(data);
+  } catch (error) {
+    console.error('getMessages error:', error);
+    res.status(500).json({ message: 'Failed to fetch messages' });
   }
 };

@@ -29,6 +29,10 @@ export const chatsTable = pgTable('chats', {
     .notNull(),
 });
 
-export const chatsRelation = relations(chatsTable, ({ many }) => ({
+export const chatsRelation = relations(chatsTable, ({ many, one }) => ({
   participants: many(participantsTable),
+  lastMessage: one(messagesTable, {
+    fields: [chatsTable.lastMessageId],
+    references: [messagesTable.id],
+  }),
 }));

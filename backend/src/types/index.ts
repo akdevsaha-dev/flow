@@ -24,3 +24,9 @@ export interface saveContactProps {
 export interface findContactsProps {
   ownerId: string;
 }
+
+export interface findMessagesProps {
+  chatId: string;
+  cursor: string | undefined;
+  limit: number;
+}
