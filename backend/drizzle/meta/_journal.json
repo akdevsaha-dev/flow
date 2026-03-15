@@ -22,6 +22,20 @@
       "when": 1773433986352,
       "tag": "0002_true_purifiers",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1773566921019,
+      "tag": "0003_next_deathstrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1773567631489,
+      "tag": "0004_opposite_starfox",
+      "breakpoints": true
     }
   ]
 }

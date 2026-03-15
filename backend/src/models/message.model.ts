@@ -19,5 +19,8 @@ export const messagesTable = pgTable(
 
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
-  table => [index('chat_idx').on(table.chatId)]
+  table => [
+    index('chat_idx').on(table.chatId),
+    index('created_idx').on(table.createdAt),
+  ]
 );
