@@ -5,7 +5,7 @@ import { chatRoute } from './routes/chat.route';
 import cookieParser from 'cookie-parser';
 import { contactRoute } from './routes/contact.route';
 import { attachWebsockerServer } from './server/ws/server';
-const PORT = Number(process.env.PORT || 5000);
+const PORT = Number(process.env.PORT || 8000);
 const HOST = process.env.HOST || '0.0.0.0';
 const app = express();
 const server = http.createServer(app);
