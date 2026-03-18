@@ -1,15 +1,25 @@
 import express, { type Request, type Response } from 'express';
 import http from 'http';
+import cors from 'cors';
 import { authRoute } from './routes/auth.route';
 import { chatRoute } from './routes/chat.route';
 import cookieParser from 'cookie-parser';
 import { contactRoute } from './routes/contact.route';
 import { attachWebsockerServer } from './server/ws/server';
+
 const PORT = Number(process.env.PORT || 8000);
 const HOST = process.env.HOST || '0.0.0.0';
 const app = express();
 const server = http.createServer(app);
+
 attachWebsockerServer(server);
+
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 

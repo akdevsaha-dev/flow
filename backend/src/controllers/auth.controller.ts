@@ -93,3 +93,15 @@ export const signout = async (req: Request, res: Response) => {
     return res.status(status).json({ error: message });
   }
 };
+
+export const checkAuth = (req: Request, res: Response) => {
+    try {
+        res.status(200).json(req.user);
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+};
