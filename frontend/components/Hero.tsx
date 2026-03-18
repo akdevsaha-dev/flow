@@ -1,17 +1,36 @@
 "use client";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { SplitText, DrawSVGPlugin } from "gsap/all";
+import { SplitText, DrawSVGPlugin, ScrollToPlugin } from "gsap/all";
 
-gsap.registerPlugin(SplitText, DrawSVGPlugin);
+gsap.registerPlugin(SplitText, DrawSVGPlugin, ScrollToPlugin);
 
 import { Animate } from "./svgs/Animate";
 import { ArrowUpRight } from "lucide-react";
+import { useRef } from "react";
 
 export const Hero = () => {
+  const triggerRef = useRef<HTMLDivElement>(null);
   useGSAP(() => {
     const split = SplitText.create(".herotext", {
       type: "words, lines",
+    });
+    gsap.timeline({
+      scrollTrigger: {
+        trigger: triggerRef.current,
+        start: "top top",
+        end: "+=10%",
+        pin: true,
+        scrub: 0.75,
+        invalidateOnRefresh: true,
+        onLeave: () => {
+          gsap.to(window, {
+            scrollTo: "#description",
+            duration: 1,
+            ease: "power2.inOut",
+          });
+        },
+      },
     });
 
     gsap.from(split.lines, {
@@ -77,8 +96,8 @@ export const Hero = () => {
     );
   }, []);
   return (
-    <div id="hero">
-      <section className="md:flex">
+    <div id="hero" className="" ref={triggerRef}>
+      <section className="panel md:flex">
         <div className="">
           <div className="herotext">Empower Connections with Flow.</div>
           <div className="heroslogan">

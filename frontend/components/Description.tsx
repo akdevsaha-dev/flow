@@ -2,15 +2,22 @@
 import { useGSAP } from "@gsap/react";
 import { useRef } from "react";
 import gsap from "gsap";
-import { MotionPathPlugin, ScrollTrigger, SplitText } from "gsap/all";
+import {
+  MotionPathPlugin,
+  ScrollToPlugin,
+  ScrollTrigger,
+  SplitText,
+} from "gsap/all";
 import Image from "next/image";
+import { useMediaQuery } from "react-responsive";
 
-gsap.registerPlugin(ScrollTrigger, SplitText, MotionPathPlugin);
+gsap.registerPlugin(ScrollTrigger, SplitText, MotionPathPlugin, ScrollToPlugin);
 
 export const Description = () => {
   const triggerRef = useRef(null);
   const containerRef = useRef(null);
   const textRef = useRef(null);
+  const isMobile = useMediaQuery({ maxWidth: 767 });
 
   useGSAP(
     () => {
@@ -28,6 +35,13 @@ export const Description = () => {
           pin: containerRef.current,
           scrub: 0.75,
           invalidateOnRefresh: true,
+          onLeave: () => {
+            gsap.to(window, {
+              scrollTo: "#benefit", // 👈 your next section id
+              duration: 1,
+              ease: "power2.inOut",
+            });
+          },
         },
       });
 
@@ -35,13 +49,20 @@ export const Description = () => {
         ".ball",
         {
           motionPath: {
-            path: [
-              { x: 100, y: 100 },
-              { x: 200, y: 50 },
-              { x: 300, y: 400 },
-              { x: 200, y: 600 },
-              { x: 900, y: 150 },
-            ],
+            path: isMobile
+              ? [
+                  { x: "5vw", y: "10vh" },
+                  { x: "60vw", y: "30vh" },
+                  { x: "10vw", y: "50vh" },
+                  { x: "70vw", y: "80vh" },
+                ]
+              : [
+                  { x: 100, y: 100 },
+                  { x: 200, y: 50 },
+                  { x: 300, y: 400 },
+                  { x: 200, y: 600 },
+                  { x: 900, y: 150 },
+                ],
             curviness: 2,
             autoRotate: true,
           },
@@ -64,7 +85,7 @@ export const Description = () => {
   );
 
   return (
-    <div ref={triggerRef}>
+    <div ref={triggerRef} id="description">
       <div
         id="desc"
         ref={containerRef}

@@ -12,6 +12,36 @@
   }
 }
 
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-wrapper {
+  overflow: hidden;
+  width: 100vw;
+  position: relative;
+}
+
+.marquee-content {
+  display: flex;
+  width: max-content;
+  flex-wrap: nowrap;
+  animation: marquee 40s linear infinite;
+  /* Slightly slower for a "premium" feel */
+  will-change: transform;
+}
+
+/* Optional: Keep the animation running but allow the colors to change */
+.marquee-content:hover {
+  animation-play-state: running;
+  /* Keep it moving to show the color change across the belt */
+}
 
 @utility flex-center {
   @apply flex items-center justify-center;
@@ -56,7 +86,7 @@
   }
 
   #hero {
-    @apply h-[100vh] col mt-5 lg:mt-20 2xl:mt-[7vh];
+    @apply h-[90vh] col mt-5 lg:mt-20 2xl:mt-[7vh];
 
     section {
       @apply md:pl-20 pl-8;
