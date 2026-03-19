@@ -1,4 +1,4 @@
-import { pgTable, timestamp, unique, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, pgTable, timestamp, unique, uuid, varchar } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { usersTable } from "./users.model";
 
@@ -7,6 +7,7 @@ export const contactsTable = pgTable("contacts", {
     ownerId: uuid("owner_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
     contactId: uuid("contact_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
     nickName: varchar("nickname", { length: 100 }),
+    isBlocked: boolean("is_blocked").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()).notNull(),
 }, (table) => [

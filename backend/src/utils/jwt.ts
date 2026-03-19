@@ -5,7 +5,7 @@ interface payloadProps {
   username: string;
 }
 
-const JWT_SECRET = process.env.JET_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 export const jwttoken = {
   sign: (payload: payloadProps) => {
