@@ -36,6 +36,13 @@
       "when": 1773567631489,
       "tag": "0004_opposite_starfox",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1773934176530,
+      "tag": "0005_clever_toro",
+      "breakpoints": true
     }
   ]
 }
