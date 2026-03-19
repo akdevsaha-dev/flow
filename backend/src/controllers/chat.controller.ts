@@ -1,7 +1,33 @@
-import { findChats, findMessages, newChat } from '@/services/chat.service';
-import { createChatSchema } from '@/validations/chat';
+import {
+  findChats,
+  findMessages,
+  newChat,
+  toggleArchiveChat,
+} from '@/services/chat.service';
+import { createChatSchema, toggleArchiveSchema } from '@/validations/chat';
 import type { Response, Request } from 'express';
-import { string } from 'zod';
+
+export const archiveChatHandler = async (req: Request, res: Response) => {
+  try {
+    const validationResult = toggleArchiveSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      return res
+        .status(400)
+        .json({ error: 'Validation failed', details: validationResult.error });
+    }
+    const { chatId, isArchived } = validationResult.data;
+    const userId = req.user.id;
+    const updated = await toggleArchiveChat({ userId, chatId, isArchived });
+    return res.status(200).json({
+      message: `Chat ${isArchived ? 'archived' : 'unarchived'} successfully`,
+      chat: updated,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      error: err instanceof Error ? err.message : 'Something went wrong',
+    });
+  }
+};
 
 export const createChat = async (req: Request, res: Response) => {
   try {

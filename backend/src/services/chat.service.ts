@@ -2,6 +2,7 @@ import { db } from '@/config/db';
 import { chatsTable } from '@/models/chats.model';
 import { messagesTable } from '@/models/message.model';
 import { participantsTable } from '@/models/participants.model';
+import { contactsTable } from '@/models/contacts.model';
 import type { createChatProps, findMessagesProps } from '@/types';
 import { and, desc, eq, lt, ne } from 'drizzle-orm';
 
@@ -11,6 +12,50 @@ export const newChat = async ({
   groupName,
   createdBy,
 }: createChatProps) => {
+  if (!isGroup && participants.length === 1) {
+    const targetUserId = participants[0];
+
+    const existingChat = await db.transaction(async tx => {
+      const commonChats = await tx
+        .select({ chatId: participantsTable.chatId })
+        .from(participantsTable)
+        .innerJoin(chatsTable, eq(participantsTable.chatId, chatsTable.id))
+        .where(
+          and(
+            eq(chatsTable.isGroup, false),
+            eq(participantsTable.userId, createdBy as string)
+          )
+        );
+
+      for (const { chatId } of commonChats) {
+        const otherParticipant = await tx
+          .select()
+          .from(participantsTable)
+          .where(
+            and(
+              eq(participantsTable.chatId, chatId),
+              eq(participantsTable.userId, targetUserId as string)
+            )
+          )
+          .limit(1);
+
+        if (otherParticipant.length > 0) {
+          return chatId;
+        }
+      }
+      return null;
+    });
+
+    if (existingChat) {
+      const [chat] = await db
+        .select()
+        .from(chatsTable)
+        .where(eq(chatsTable.id, existingChat))
+        .limit(1);
+      return chat;
+    }
+  }
+
   return await db.transaction(async tx => {
     const [chat] = await tx
       .insert(chatsTable)
@@ -36,45 +81,66 @@ export const newChat = async ({
 };
 
 export const findChats = async ({ userId }: { userId: string }) => {
-  const rawChats = await db.query.participantsTable.findMany({
-    where: (participants, { eq }) => eq(participants.userId, userId),
+  const myParticipants = await db
+    .select({
+      chatId: participantsTable.chatId,
+      isArchived: participantsTable.isArchived,
+      unreadCount: participantsTable.unreadCount,
+    })
+    .from(participantsTable)
+    .where(eq(participantsTable.userId, userId));
+
+  if (myParticipants.length === 0) return [];
+
+  const chatIds = myParticipants.map(p => p.chatId);
+
+  const chats = await db.query.chatsTable.findMany({
+    where: (chats, { inArray }) => inArray(chats.id, chatIds),
     with: {
-      chat: {
-        with: {
-          lastMessage: {
-            with: { sender: true },
-          },
-          participants: {
-            where: (participants, { ne }) => ne(participants.userId, userId),
-            with: { user: true },
-          },
-        },
+      lastMessage: {
+        with: { sender: true },
+      },
+      participants: {
+        where: (participants, { ne }) => ne(participants.userId, userId),
+        with: { user: true },
       },
     },
   });
 
-  const formattedChats = rawChats.map(p => {
-    const chat = p.chat;
-    const lastMsg = chat?.lastMessage;
+  const contacts = await db
+    .select()
+    .from(contactsTable)
+    .where(eq(contactsTable.ownerId, userId));
 
-    const allOtherMembers =
-      chat?.participants?.map(p => ({
+  const contactMap = new Map(contacts.map(c => [c.contactId, c]));
+
+  const formattedChats = chats.map(chat => {
+    const myParticipantData = myParticipants.find(p => p.chatId === chat.id);
+    const lastMsg = chat.lastMessage;
+
+    const allOtherMembers = chat.participants.map(p => {
+      const contact = contactMap.get(p.user.id);
+      return {
         id: p.user.id,
-        name: p.user.username,
+        name: contact?.nickName || p.user.username,
+        username: p.user.username,
         avatar: p.user.avatarUrl,
-      })) || [];
+        isBlocked: contact?.isBlocked || false,
+      };
+    });
 
     return {
-      id: chat?.id,
-      isGroup: chat?.isGroup,
-      groupName: chat?.groupName,
-      lastMessageId: chat?.lastMessageId,
+      id: chat.id,
+      isGroup: chat.isGroup,
+      groupName: chat.groupName,
+      lastMessageId: chat.lastMessageId,
       lastMessage: lastMsg?.content,
       lastMessageTime: lastMsg?.createdAt,
       lastMessageSenderId: lastMsg?.sender?.id,
       lastMessageSenderName: lastMsg?.sender?.username,
       lastMessageSenderAvatar: lastMsg?.sender?.avatarUrl,
-
+      isArchived: myParticipantData?.isArchived || false,
+      unreadCount: myParticipantData?.unreadCount || 0,
       otherParticipants: allOtherMembers,
     };
   });
@@ -84,6 +150,28 @@ export const findChats = async ({ userId }: { userId: string }) => {
     const timeB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
     return timeB - timeA;
   });
+};
+
+export const toggleArchiveChat = async ({
+  userId,
+  chatId,
+  isArchived,
+}: {
+  userId: string;
+  chatId: string;
+  isArchived: boolean;
+}) => {
+  const [updated] = await db
+    .update(participantsTable)
+    .set({ isArchived })
+    .where(
+      and(
+        eq(participantsTable.userId, userId),
+        eq(participantsTable.chatId, chatId)
+      )
+    )
+    .returning();
+  return updated;
 };
 
 export const findMessages = async ({

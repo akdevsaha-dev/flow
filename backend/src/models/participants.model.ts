@@ -1,4 +1,4 @@
-import { boolean, pgTable, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import { boolean, integer, pgTable, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { usersTable } from './users.model';
 import { chatsTable } from './chats.model';
@@ -15,6 +15,8 @@ export const participantsTable = pgTable(
       .notNull()
       .references(() => chatsTable.id, { onDelete: 'cascade' }),
     isAdmin: boolean('is_admin').default(false).notNull(),
+    isArchived: boolean('is_archived').default(false).notNull(),
+    unreadCount: integer('unread_count').default(0).notNull(),
     joinedAt: timestamp('joined_at').defaultNow().notNull(),
   },
   table => [unique('uniqueMembership').on(table.userId, table.chatId)]

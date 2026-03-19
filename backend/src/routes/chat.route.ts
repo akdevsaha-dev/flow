@@ -1,4 +1,5 @@
 import {
+  archiveChatHandler,
   createChat,
   getChats,
   getMessages,
@@ -15,3 +16,4 @@ chatRoute.get(
   authMiddleware,
   getMessages
 );
+chatRoute.put('/archive', authMiddleware, archiveChatHandler);
