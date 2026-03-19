@@ -1,12 +1,14 @@
 import { create } from "zustand";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
+import axios from "axios";
 
 interface AuthUser {
   id: string;
   email: string;
   username: string;
   about?: string | null;
+  avatar_url?: string | null;
 }
 
 interface AuthStore {
@@ -15,6 +17,8 @@ interface AuthStore {
   isSigningIn: boolean;
   isSigningUp: boolean;
   isLoggingOut: boolean;
+  signinError: string | null;
+  signupError: string | null;
   checkAuth: () => Promise<void>;
   signup: (data: {
     username: string;
@@ -31,10 +35,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
   isSigningIn: false,
   isSigningUp: false,
   isLoggingOut: false,
+  signinError: null,
+  signupError: null,
 
   checkAuth: async () => {
     try {
-      set({ isCheckingAuth: true });
+      set({ isCheckingAuth: true, signinError: null, signupError: null });
       const res = await api.get("/auth/check-auth");
       set({ authUser: res.data.user || res.data });
     } catch (error) {
@@ -51,17 +57,23 @@ export const useAuthStore = create<AuthStore>((set) => ({
     password: string;
   }): Promise<boolean> => {
     try {
-      set({ isSigningUp: true });
+      set({ isSigningUp: true, signupError: null });
       const res = await api.post("/auth/signup", data);
-      set({ authUser: res.data.user });
+      set({ authUser: res.data.user, signupError: null });
       toast.success(`Account created! Signed up as ${res.data.user.email}`);
       return true;
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.error ||
+    } catch (error: unknown) {
+      let message = "Sign up failed";
+      if (axios.isAxiosError(error)) {
+        message =
+          error.response?.data?.error ||
           error.response?.data?.message ||
-          "Sign up failed",
-      );
+          message;
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
+      set({ signupError: message });
+      toast.error(message);
       return false;
     } finally {
       set({ isSigningUp: false });
@@ -73,17 +85,24 @@ export const useAuthStore = create<AuthStore>((set) => ({
     password: string;
   }): Promise<boolean> => {
     try {
-      set({ isSigningIn: true });
+      set({ isSigningIn: true, signinError: null });
       const res = await api.post("/auth/signin", data);
-      set({ authUser: res.data.user });
+      set({ authUser: res.data.user, signinError: null });
       toast.success(`Welcome back! Signed in as ${res.data.user.email}`);
       return true;
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.error ||
+    } catch (error: unknown) {
+      let message = "Sign in failed";
+      if (axios.isAxiosError(error)) {
+        message =
+          error.response?.data?.error ||
           error.response?.data?.message ||
-          "Sign in failed",
-      );
+          message;
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
+
+      set({ signupError: message });
+      toast.error(message);
       return false;
     } finally {
       set({ isSigningIn: false });
@@ -97,9 +116,20 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ authUser: null });
       toast.success("Logged out successfully");
       return true;
-    } catch (error: any) {
-      toast.error("Failed to log out");
-      console.log("Cannot log out", error);
+    } catch (error: unknown) {
+      let message = "Log out failed";
+
+      if (axios.isAxiosError(error)) {
+        message =
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          message;
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
+
+      set({ signupError: message });
+      toast.error(message);
       return false;
     } finally {
       set({ isLoggingOut: false });
