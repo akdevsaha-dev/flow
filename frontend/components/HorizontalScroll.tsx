@@ -69,7 +69,7 @@ export const HorizontalScroll = () => {
           </div>
         </section>
 
-        <section className="panel w-[100vw] h-[100vh] shrink-0 bg-slate-100 flex-center ">
+        <section className="panel w-[100vw] h-[100vh] shrink-0 bg-slate-100 flex-center` ">
           <div className="h-screen  w-full flex-center ">
             <div className="w-6xl bg-[#bfd3c23e] flex h-[80vh] rounded-4xl">
               <div className="flex-1 col-center gap-6">

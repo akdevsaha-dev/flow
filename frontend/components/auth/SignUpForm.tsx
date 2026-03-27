@@ -14,6 +14,7 @@ export const SignUpForm = () => {
 
   const signup = useAuthStore((state) => state.signup);
   const isSigningUp = useAuthStore((state) => state.isSigningUp);
+  const signupError = useAuthStore((state) => state.signupError);
   const router = useRouter();
 
   const emailRef = useRef<HTMLInputElement>(null);
@@ -70,6 +71,9 @@ export const SignUpForm = () => {
           onKeyDown={handleEmailKeyDown}
           required
         />
+        {signupError && signupError.toLowerCase().includes("user") && (
+          <p className="text-sm text-red-500 mt-1">{signupError}</p>
+        )}
         <InputBox
           ref={passwordRef}
           label="Password"
@@ -80,6 +84,9 @@ export const SignUpForm = () => {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
+        {signupError && !signupError.toLowerCase().includes("user") && (
+          <p className="text-sm text-red-500 mt-1">{signupError}</p>
+        )}
 
         <button
           type="submit"

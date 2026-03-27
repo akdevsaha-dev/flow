@@ -3,16 +3,36 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Loader2 } from "lucide-react";
+import { NavSidebar } from "@/components/chat/NavSidebar";
+import { ChatList } from "@/components/chat/ChatList";
+import { ChatArea } from "@/components/chat/ChatArea";
+import { useRouter } from "next/navigation";
+import { SettingsPopup } from "@/components/chat/SettingsPopup";
+import { useContactStore } from "@/store/useContactStore";
 
 export default function ChatPage() {
   const authUser = useAuthStore((state) => state.authUser);
   const isCheckingAuth = useAuthStore((state) => state.isCheckingAuth);
   const checkAuth = useAuthStore((state) => state.checkAuth);
+  const fetchContacts = useContactStore((state) => state.fetchContacts);
   const [hasChecked, setHasChecked] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     checkAuth().finally(() => setHasChecked(true));
   }, [checkAuth]);
+
+  useEffect(() => {
+    if (authUser) {
+      fetchContacts();
+    }
+  }, [authUser, fetchContacts]);
+
+  useEffect(() => {
+    if (hasChecked && !authUser) {
+      router.push("/signin");
+    }
+  }, [hasChecked, authUser, router]);
 
   if (!hasChecked || isCheckingAuth) {
     return (
@@ -22,14 +42,16 @@ export default function ChatPage() {
     );
   }
 
+  if (!authUser) return null;
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#eef3ee] p-4 text-black">
-      <h1 className="text-4xl font-medium tracking-tight mb-4">Chat</h1>
-      {authUser ? (
-        <p className="text-xl">Welcome @{authUser.username}</p>
-      ) : (
-        <p className="text-xl">Please sign in to view the chat.</p>
-      )}
-    </div>
+    <>
+      <div className="flex h-screen w-full bg-[#eef3ee] overflow-hidden md:flex-row flex-col pb-16 md:pb-0">
+        <NavSidebar />
+        <ChatList />
+        <ChatArea />
+      </div>
+      <SettingsPopup />
+    </>
   );
 }

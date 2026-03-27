@@ -13,6 +13,7 @@ export const SignInForm = () => {
   
   const signin = useAuthStore((state) => state.signin);
   const isSigningIn = useAuthStore((state) => state.isSigningIn);
+  const signinError = useAuthStore((state) => state.signinError);
   const router = useRouter();
 
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -27,7 +28,7 @@ export const SignInForm = () => {
 
   const handleEmailKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      e.preventDefault(); // Prevent implicit form submission
+      e.preventDefault();
       passwordRef.current?.focus();
     }
   };
@@ -50,6 +51,9 @@ export const SignInForm = () => {
           onKeyDown={handleEmailKeyDown}
           required
         />
+        {signinError && signinError.toLowerCase().includes("user") && (
+          <p className="text-sm text-red-500 mt-1"> {signinError} </p>
+        )}
         <InputBox
           ref={passwordRef}
           label="Password"
@@ -60,6 +64,9 @@ export const SignInForm = () => {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
+        {signinError && signinError.toLowerCase().includes("password") && (
+          <p className="text-sm text-red-500 mt-1">{signinError}</p>
+        )}
 
         <button
           type="submit"

@@ -3,6 +3,7 @@ import { navLinks } from "@/constants";
 import { ArrowUpRight } from "lucide-react";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "gsap";
+import Link from "next/link";
 
 export const Navbar = () => {
   useGSAP(() => {
@@ -79,7 +80,9 @@ export const Navbar = () => {
           ))}
         </ul>
         <div className="right">
-          <div className="text-sm">Try Out</div>
+          <Link href={"/signin"} className="text-sm">
+            Try Out
+          </Link>
           <div className="bg-green-200 flex-center rounded-full h-7 w-7">
             <ArrowUpRight size={20} />
           </div>
