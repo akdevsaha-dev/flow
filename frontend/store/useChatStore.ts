@@ -12,6 +12,7 @@ export interface ChatMessage {
 export interface ChatParticipant {
   id: string;
   name: string;
+  username?: string;
   avatar: string | null;
   isBlocked: boolean;
 }
@@ -20,6 +21,7 @@ export interface Chat {
   id: string;
   isGroup: boolean;
   groupName: string | null;
+  createdBy: string;
   lastMessageId: string | null;
   lastMessage: string | null;
   lastMessageTime: string | null;
@@ -38,6 +40,13 @@ interface ChatStore {
   activeTab: "chats" | "groups" | "unread" | "archive";
   isFetchingChats: boolean;
   isFetchingMessages: boolean;
+  typingUsers: string[];
+  /** Set of userIds currently connected via WebSocket */
+  onlineUsers: Set<string>;
+  /** userId → ISO timestamp of last disconnect */
+  lastSeenAt: Record<string, string>;
+  startTyping: (userId: string) => void;
+  stopTyping: (userId: string) => void;
   fetchChats: () => Promise<void>;
   fetchMessages: (chatId: string) => Promise<void>;
   setSelectedChat: (chatId: string | null) => void;
@@ -45,7 +54,11 @@ interface ChatStore {
   toggleArchiveChat: (chatId: string, isArchived: boolean) => Promise<void>;
   createChat: (participants: string[], groupName?: string) => Promise<void>;
   startChatWithContact: (contactId: string) => Promise<void>;
-  sendMessageStub: (chatId: string, content: string, senderId: string) => void;
+  addMessageRealTime: (message: ChatMessage) => void;
+  markMessageReadLocally: (chatId: string, messageId: string, userId: string) => void;
+  setOnlineUsers: (userIds: string[]) => void;
+  setUserOnline: (userId: string) => void;
+  setUserOffline: (userId: string, seenAt: string) => void;
 }
 
 export const useChatStore = create<ChatStore>((set, get) => ({
@@ -55,11 +68,25 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   activeTab: "chats",
   isFetchingChats: false,
   isFetchingMessages: false,
-
+  typingUsers: [],
+  onlineUsers: new Set<string>(),
+  lastSeenAt: {},
   setActiveTab: (tab) => {
     set({ activeTab: tab });
   },
-
+  startTyping: (userId: string) => {
+    set((state) => {
+      if (state.typingUsers.includes(userId)) return state;
+      return {
+        typingUsers: [...state.typingUsers, userId],
+      };
+    });
+  },
+  stopTyping: (userId: string) => {
+    set((state) => ({
+      typingUsers: state.typingUsers.filter((u) => u !== userId),
+    }));
+  },
   fetchChats: async () => {
     try {
       set({ isFetchingChats: true });
@@ -115,10 +142,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       });
       const newChatData = res.data.chat;
 
-      // Refresh chats to get full metadata
       await get().fetchChats();
 
-      // Select the new chat
       get().setSelectedChat(newChatData.id);
       set({ activeTab: "chats" });
     } catch (error) {
@@ -126,10 +151,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       throw error;
     }
   },
-
   startChatWithContact: async (contactId: string) => {
     try {
-      // 1. Check if chat already exists in local state
       const existingChat = get().chats.find(
         (chat) =>
           !chat.isGroup &&
@@ -142,7 +165,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         return;
       }
 
-      // 2. Otherwise create new chat using the generic createChat
       await get().createChat([contactId]);
     } catch (error) {
       console.error("Failed to start chat with contact", error);
@@ -150,18 +172,60 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
-  sendMessageStub: (chatId: string, content: string, senderId: string) => {
+  addMessageRealTime: (message: ChatMessage) => {
+    set((state) => {
+      // Only append to the visible messages list if we're currently in this chat
+      const isActiveChat = state.selectedChatId === message.chatId;
+      return {
+        messages: isActiveChat ? [...state.messages, message] : state.messages,
+        // Always update the chat list preview so it reflects the latest message
+        chats: state.chats.map((chat) =>
+          chat.id === message.chatId
+            ? {
+                ...chat,
+                lastMessageId: message.id,
+                lastMessage: message.content,
+                lastMessageTime: message.createdAt,
+                lastMessageSenderId: message.senderId,
+              }
+            : chat
+        ),
+      };
+    });
+  },
+
+  markMessageReadLocally: (chatId: string, messageId: string, _userId: string) => {
+    // Update the chat's lastReadMessageId locally (no UI impact yet, but ready for future badges)
     set((state) => ({
-      messages: [
-        ...state.messages,
-        {
-          id: Math.random().toString(),
-          chatId,
-          senderId,
-          content,
-          createdAt: new Date().toISOString(),
-        },
-      ],
+      chats: state.chats.map((chat) =>
+        chat.id === chatId ? { ...chat } : chat
+      ),
     }));
+    // Suppress unused variable warning — userId kept for future unread-badge logic
+    void _userId;
+    void messageId;
+  },
+
+  setOnlineUsers: (userIds: string[]) => {
+    set({ onlineUsers: new Set(userIds) });
+  },
+
+  setUserOnline: (userId: string) => {
+    set((state) => {
+      const next = new Set(state.onlineUsers);
+      next.add(userId);
+      return { onlineUsers: next };
+    });
+  },
+
+  setUserOffline: (userId: string, seenAt: string) => {
+    set((state) => {
+      const next = new Set(state.onlineUsers);
+      next.delete(userId);
+      return {
+        onlineUsers: next,
+        lastSeenAt: { ...state.lastSeenAt, [userId]: seenAt },
+      };
+    });
   },
 }));

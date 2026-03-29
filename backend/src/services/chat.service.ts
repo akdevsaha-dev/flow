@@ -133,6 +133,7 @@ export const findChats = async ({ userId }: { userId: string }) => {
       id: chat.id,
       isGroup: chat.isGroup,
       groupName: chat.groupName,
+      createdBy: chat.createdBy,
       lastMessageId: chat.lastMessageId,
       lastMessage: lastMsg?.content,
       lastMessageTime: lastMsg?.createdAt,

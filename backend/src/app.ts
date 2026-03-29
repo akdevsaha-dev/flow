@@ -5,14 +5,15 @@ import { authRoute } from './routes/auth.route';
 import { chatRoute } from './routes/chat.route';
 import cookieParser from 'cookie-parser';
 import { contactRoute } from './routes/contact.route';
-import { attachWebsockerServer } from './server/ws/server';
+import { userRoute } from './routes/user.route';
+import { attachWebSocketServer } from './server/ws/server';
 
 const PORT = Number(process.env.PORT || 8000);
 const HOST = process.env.HOST || '0.0.0.0';
 const app = express();
 const server = http.createServer(app);
 
-attachWebsockerServer(server);
+attachWebSocketServer(server);
 
 app.use(
   cors({
@@ -27,6 +28,7 @@ app.get('/', (req: Request, res: Response) => {
   res.send('Initial setup feel free to change me');
 });
 app.use('/api/auth', authRoute);
+app.use('/api/users', userRoute);
 app.use('/api/chat', chatRoute);
 app.use('/api/contact', contactRoute);
 console.log('Backend starting...');

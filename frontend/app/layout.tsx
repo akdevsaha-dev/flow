@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 import { Toaster } from "react-hot-toast";
+import { SocketProvider } from "./providers/socket-provider";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -30,7 +31,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Toaster position="top-center" />
-        {children}
+        <SocketProvider>{children}</SocketProvider>
       </body>
     </html>
   );

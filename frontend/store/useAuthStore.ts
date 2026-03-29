@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
-import axios from "axios";
 
 interface AuthUser {
   id: string;
@@ -35,8 +34,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
   isSigningIn: false,
   isSigningUp: false,
   isLoggingOut: false,
-  signinError: null,
-  signupError: null,
+   signinError: null,
+   signupError: null,
 
   checkAuth: async () => {
     try {
@@ -62,16 +61,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ authUser: res.data.user, signupError: null });
       toast.success(`Account created! Signed up as ${res.data.user.email}`);
       return true;
-    } catch (error: unknown) {
-      let message = "Sign up failed";
-      if (axios.isAxiosError(error)) {
-        message =
-          error.response?.data?.error ||
-          error.response?.data?.message ||
-          message;
-      } else if (error instanceof Error) {
-        message = error.message;
-      }
+    } catch (error: any) {
+      const message =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Sign up failed";
       set({ signupError: message });
       toast.error(message);
       return false;
@@ -90,18 +84,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ authUser: res.data.user, signinError: null });
       toast.success(`Welcome back! Signed in as ${res.data.user.email}`);
       return true;
-    } catch (error: unknown) {
-      let message = "Sign in failed";
-      if (axios.isAxiosError(error)) {
-        message =
-          error.response?.data?.error ||
-          error.response?.data?.message ||
-          message;
-      } else if (error instanceof Error) {
-        message = error.message;
-      }
-
-      set({ signupError: message });
+    } catch (error: any) {
+      const message =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Sign in failed";
+      set({ signinError: message });
       toast.error(message);
       return false;
     } finally {
@@ -116,20 +104,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ authUser: null });
       toast.success("Logged out successfully");
       return true;
-    } catch (error: unknown) {
-      let message = "Log out failed";
-
-      if (axios.isAxiosError(error)) {
-        message =
-          error.response?.data?.error ||
-          error.response?.data?.message ||
-          message;
-      } else if (error instanceof Error) {
-        message = error.message;
-      }
-
-      set({ signupError: message });
-      toast.error(message);
+    } catch (error: any) {
+      toast.error("Failed to log out");
+      console.log("Cannot log out", error);
       return false;
     } finally {
       set({ isLoggingOut: false });

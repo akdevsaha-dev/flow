@@ -1,4 +1,3 @@
-import { searchUsers } from '@/services/auth.service';
 import {
   findChats,
   findMessages,
@@ -97,20 +96,3 @@ export const getMessages = async (req: Request, res: Response) => {
   }
 };
 
-export const searchUsersHandler = async (req: Request, res: Response) => {
-  try {
-    const query = req.query.query as string;
-    if (!query) return res.status(200).json({ users: [] });
-
-    const excludeUserId = req.user.id;
-    const users = await searchUsers(query, excludeUserId);
-    return res.status(200).json({ users });
-  } catch (err: unknown) {
-    let message = 'Something went wrong';
-    const status = 500;
-    if (err instanceof Error) {
-      message = err.message;
-    }
-    return res.status(status).json({ error: message });
-  }
-};

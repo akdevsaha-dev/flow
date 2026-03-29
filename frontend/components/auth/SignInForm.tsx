@@ -28,7 +28,7 @@ export const SignInForm = () => {
 
   const handleEmailKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      e.preventDefault();
+      e.preventDefault(); // Prevent implicit form submission
       passwordRef.current?.focus();
     }
   };

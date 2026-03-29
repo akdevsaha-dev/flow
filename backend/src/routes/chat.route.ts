@@ -3,7 +3,6 @@ import {
   createChat,
   getChats,
   getMessages,
-  searchUsersHandler,
 } from '@/controllers/chat.controller';
 import { Router } from 'express';
 import { authMiddleware } from '@/middleware/auth.middleware';
@@ -18,4 +17,3 @@ chatRoute.get(
   getMessages
 );
 chatRoute.put('/archive', authMiddleware, archiveChatHandler);
-chatRoute.get('/search-users', authMiddleware, searchUsersHandler);

@@ -47,7 +47,9 @@ export const useContactStore = create<ContactStore>((set) => ({
   searchUsers: async (query: string) => {
     try {
       set({ isSearching: true });
-      const res = await api.get(`/auth/search-users?query=${query}`);
+      const res = await api.get(
+        `/users/search?query=${encodeURIComponent(query)}`,
+      );
       set({ searchResults: res.data.users || [] });
     } catch (error) {
       console.error("Failed to search users", error);
@@ -59,7 +61,6 @@ export const useContactStore = create<ContactStore>((set) => ({
   addContact: async (contactId: string) => {
     try {
       await api.post("/contact/add-contact", { contactId });
-      // Refresh contacts list after adding
       const res = await api.get("/contact/get-contacts");
       set({ contacts: res.data.contacts || [] });
     } catch (error) {

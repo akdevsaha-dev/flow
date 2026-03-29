@@ -14,6 +14,12 @@ export function broadcast(wss: WebSocketServer, payload: object) {
   });
 }
 
+/** userId → ISO timestamp of when they connected */
+export const onlineUsers = new Map<string, string>();
+
+/** userId → ISO timestamp of their last disconnect */
+export const lastSeenAt = new Map<string, string>();
+
 export const chatRooms = new Map<string, Set<CustomWebSocket>>();
 
 export function joinChat(chatId: string, socket: CustomWebSocket) {
@@ -31,6 +37,7 @@ export function leaveChat(chatId: string, socket: CustomWebSocket) {
     chatRooms.delete(chatId);
   }
 }
+
 export function broadcastToChat(chatId: string, payload: object) {
   const sockets = chatRooms.get(chatId);
   if (!sockets) return;
@@ -39,4 +46,13 @@ export function broadcastToChat(chatId: string, payload: object) {
       sendJson(socket, payload);
     }
   }
+}
+
+/** Broadcast a payload to every connected socket (for presence events). */
+export function broadcastAll(wss: WebSocketServer, payload: object) {
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(payload));
+    }
+  });
 }

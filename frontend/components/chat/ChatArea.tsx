@@ -14,32 +14,32 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useContactStore } from "@/store/useContactStore";
-import {
-  useChatStore,
-} from "@/store/useChatStore";
+import { useChatStore } from "@/store/useChatStore";
 import toast from "react-hot-toast";
 import Image from "next/image";
 import axios from "axios";
+import { useSocket } from "@/app/providers/socket-provider";
 
 export const ChatArea = () => {
   const [message, setMessage] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false);
+  const [isGroupInfoModalOpen, setIsGroupInfoModalOpen] = useState(false);
   const [newNickname, setNewNickname] = useState("");
-
   const [isArchiving, setIsArchiving] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
   const [isUpdatingNickname, setIsUpdatingNickname] = useState(false);
-
+  const socket = useSocket();
   const menuRef = useRef<HTMLDivElement>(null);
-
   const selectedChatId = useChatStore((state) => state.selectedChatId);
   const setSelectedChat = useChatStore((state) => state.setSelectedChat);
   const chats = useChatStore((state) => state.chats);
   const messages = useChatStore((state) => state.messages);
-  const sendMessageStub = useChatStore((state) => state.sendMessageStub);
   const toggleArchiveChat = useChatStore((state) => state.toggleArchiveChat);
+  const addMessageRealTime = useChatStore((state) => state.addMessageRealTime);
   const authUser = useAuthStore((state) => state.authUser);
+  const onlineUsers = useChatStore((state) => state.onlineUsers);
+  const lastSeenAt = useChatStore((state) => state.lastSeenAt);
 
   const contacts = useContactStore((state) => state.contacts);
   const updateNickname = useContactStore((state) => state.updateNickname);
@@ -48,6 +48,10 @@ export const ChatArea = () => {
   );
 
   const activeChat = chats.find((c) => c.id === selectedChatId);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const allTypingUsers = useChatStore((state) => state.typingUsers);
+  const otherTypingUsers = allTypingUsers.filter(userId => userId !== authUser?.id);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -59,11 +63,82 @@ export const ChatArea = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    if (!socket || socket.readyState !== WebSocket.OPEN || !selectedChatId) return;
+    if (messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    socket.send(
+      JSON.stringify({
+        type: "mark_read",
+        chatId: selectedChatId,
+        messageId: lastMsg.id,
+      })
+    );
+  }, [socket, selectedChatId, messages]);
+
+  useEffect(() => {
+    if (!socket || socket.readyState !== WebSocket.OPEN || !selectedChatId) {
+      return;
+    }
+    const chatId = selectedChatId;
+    socket.send(JSON.stringify({ type: "join_chat", chatId }));
+    return () => {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: "leave_chat", chatId }));
+      }
+    };
+  }, [socket, selectedChatId]);
+
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || !selectedChatId || !authUser) return;
-    sendMessageStub(selectedChatId, message, authUser.id);
+    const trimmed = message.trim();
+    if (!trimmed || !selectedChatId || !authUser) return;
+
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      // Real path: send via WebSocket; the server will persist and broadcast back
+      socket.send(
+        JSON.stringify({
+          type: "send_message",
+          chatId: selectedChatId,
+          content: trimmed,
+        })
+      );
+    } else {
+      // Fallback: optimistic local append when socket is unavailable
+      addMessageRealTime({
+        id: crypto.randomUUID(),
+        chatId: selectedChatId,
+        senderId: authUser.id,
+        content: trimmed,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
     setMessage("");
+  };
+  const handleTyping = () => {
+    if (!socket || !selectedChatId || !authUser) return;
+    socket.send(
+      JSON.stringify({
+        type: "typing_start",
+        chatId: selectedChatId,
+      }),
+    );
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(() => {
+      socket.send(
+        JSON.stringify({
+          type: "typing_stop",
+          chatId: selectedChatId,
+        }),
+      );
+    }, 1000);
   };
 
   if (!activeChat) {
@@ -100,6 +175,26 @@ export const ChatArea = () => {
   ) : (
     chatName?.charAt(0)
   );
+
+  const isOtherUserOnline = otherParticipant ? onlineUsers.has(otherParticipant.id) : false;
+
+  const formatLastSeen = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+      if (diffInSeconds < 60) return "last seen just now";
+      if (diffInSeconds < 3600) return `last seen ${Math.floor(diffInSeconds / 60)}m ago`;
+      if (diffInSeconds < 86400) return `last seen ${Math.floor(diffInSeconds / 3600)}h ago`;
+      return `last seen ${date.toLocaleDateString()}`;
+    } catch (e) {
+      return "Offline";
+    }
+  };
+
+  const lastSeenTime = otherParticipant ? lastSeenAt[otherParticipant.id] : null;
+  const lastSeenText = lastSeenTime ? formatLastSeen(lastSeenTime) : null;
 
   const handleArchive = async () => {
     setIsArchiving(true);
@@ -177,6 +272,20 @@ export const ChatArea = () => {
     setIsMenuOpen(false);
   };
 
+  const memberList = (() => {
+    if (!activeChat.isGroup) return [];
+    const me = authUser
+      ? {
+        id: authUser.id,
+        name: authUser.username || authUser.email || "You",
+        username: authUser.username,
+        avatar: authUser.avatar_url ?? null,
+      }
+      : null;
+    const others = activeChat.otherParticipants ?? [];
+    return me ? [me, ...others] : others;
+  })();
+
   return (
     <div
       className={`flex-1 h-full flex-col bg-white shadow-[-10px_0_30px_rgb(0,0,0,0.02)] z-30 ${selectedChatId ? "flex" : "hidden md:flex"}`}
@@ -193,22 +302,65 @@ export const ChatArea = () => {
             {typeof avatar === "string" ? avatar?.toUpperCase() : avatar}
           </div>
           <div>
-            <h2 className="font-semibold tracking-tight text-black text-lg">
-              {chatName}
-            </h2>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <div className="w-2 relative flex items-center justify-center h-2">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75 animate-ping"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+            {activeChat.isGroup ? (
+              <button
+                type="button"
+                onClick={() => setIsGroupInfoModalOpen(true)}
+                className="font-semibold tracking-tight text-black text-lg text-left"
+              >
+                {chatName}
+              </button>
+            ) : (
+              <h2 className="font-semibold tracking-tight text-black text-lg">
+                {chatName}
+              </h2>
+            )}
+            <div className="flex items-center gap-2 mt-0.5">
+              <div className="relative flex items-center justify-center w-2 h-2">
+                {otherTypingUsers.length > 0 ? (
+                  <>
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75 animate-bounce"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
+                  </>
+                ) : isOtherUserOnline ? (
+                  <>
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75 animate-ping"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                  </>
+                ) : (
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-neutral-400"></span>
+                )}
               </div>
-              <span className="text-[13px] text-neutral-500 font-medium">
-                Active now
-              </span>
+
+              <div className="h-4 flex items-center">
+                {otherTypingUsers.length > 0 ? (
+                  <span className="text-[13px] font-medium animate-pulse">
+                    {otherTypingUsers.length === 1
+                      ? "typing..."
+                      : `${otherTypingUsers.length} people typing...`}
+                  </span>
+                ) : activeChat.isGroup ? (
+                  <span className="text-[13px] text-neutral-500 font-medium">
+                    {activeChat.otherParticipants.length + 1} members
+                  </span>
+                ) : isOtherUserOnline ? (
+                  <span className="text-[13px] text-emerald-600 font-medium">
+                    Active now
+                  </span>
+                ) : lastSeenText ? (
+                  <span className="text-[13px] text-neutral-400 font-medium">
+                    {lastSeenText}
+                  </span>
+                ) : (
+                  <span className="text-[13px] text-neutral-400 font-medium">
+                    Offline
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Action Icons */}
         <div className="flex items-center gap-2 text-neutral-400">
           <button className="p-3 hover:bg-neutral-100 hover:text-black rounded-full transition-all">
             <Phone size={20} />
@@ -254,9 +406,9 @@ export const ChatArea = () => {
                       onClick={handleBlock}
                       disabled={isBlocking}
                       className={`w-full text-left px-4 py-2.5 hover:bg-neutral-50 flex items-center gap-3 text-sm font-medium transition-colors disabled:opacity-50 ${contactInfo?.isBlocked ||
-                          (otherParticipant as any)?.isBlocked
-                          ? "text-green-600 hover:text-green-700"
-                          : "text-red-500 hover:text-red-600"
+                        (otherParticipant as any)?.isBlocked
+                        ? "text-green-600 hover:text-green-700"
+                        : "text-red-500 hover:text-red-600"
                         }`}
                     >
                       <Ban size={16} />
@@ -275,7 +427,6 @@ export const ChatArea = () => {
         </div>
       </div>
 
-      {/* Messages Area */}
       <div
         className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-[#fafafa]/50"
         style={{ scrollbarWidth: "none" }}
@@ -330,6 +481,7 @@ export const ChatArea = () => {
             );
           })}
         </div>
+        <div ref={messagesEndRef} className="h-0" />
       </div>
 
       <div className="p-6 bg-white shrink-0 relative">
@@ -353,8 +505,8 @@ export const ChatArea = () => {
         <form
           onSubmit={handleSend}
           className={`max-w-4xl mx-auto flex items-center bg-neutral-100/70 rounded-4xl border-2 border-transparent focus-within:bg-white focus-within:border-neutral-200 focus-within:shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-2 pr-2 transition-all duration-300 ${contactInfo?.isBlocked || (otherParticipant as any)?.isBlocked
-              ? "opacity-50 grayscale pointer-events-none"
-              : ""
+            ? "opacity-50 grayscale pointer-events-none"
+            : ""
             }`}
         >
           <button
@@ -371,7 +523,10 @@ export const ChatArea = () => {
                 : "Write your message..."
             }
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => {
+              setMessage(e.target.value);
+              handleTyping();
+            }}
             disabled={
               !!(contactInfo?.isBlocked || (otherParticipant as any)?.isBlocked)
             }
@@ -437,6 +592,82 @@ export const ChatArea = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {activeChat.isGroup && isGroupInfoModalOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-100 flex items-center justify-center p-4 min-h-screen w-full left-0 top-0"
+          onClick={() => setIsGroupInfoModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl p-6 w-full max-w-md shadow-xl transform transition-all animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <div className="min-w-0">
+                <h3 className="text-xl font-semibold text-black tracking-tight truncate">
+                  {activeChat.groupName || "Group"}
+                </h3>
+                <p className="text-xs text-neutral-500 font-medium mt-1">
+                  {memberList.length} members
+                </p>
+              </div>
+              <button
+                onClick={() => setIsGroupInfoModalOpen(false)}
+                className="p-2 -mr-2 text-neutral-400 hover:text-black hover:bg-neutral-100 rounded-full transition-colors"
+                aria-label="Close group info"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="border-t border-neutral-100 pt-4 max-h-[55vh] overflow-y-auto pr-1">
+              <div className="space-y-2">
+                {memberList.map((m: any) => {
+                  const isAdmin = m.id === (activeChat as any).createdBy;
+                  const initials =
+                    (m.name?.charAt?.(0) || m.username?.charAt?.(0) || "U").toUpperCase();
+                  const secondary = m.email || m.username || "";
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex items-center gap-3 p-3 rounded-2xl hover:bg-neutral-50 transition-colors"
+                    >
+                      <div className="w-11 h-11 rounded-full bg-neutral-200 flex items-center justify-center text-neutral-700 font-semibold overflow-hidden shrink-0">
+                        {m.avatar ? (
+                          <img
+                            src={m.avatar}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          initials
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <p className="text-sm font-semibold text-black truncate">
+                            {m.name || m.username || "Unknown"}
+                          </p>
+                          {isAdmin && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-black text-white shrink-0">
+                              Admin
+                            </span>
+                          )}
+                        </div>
+                        {secondary && (
+                          <p className="text-xs text-neutral-500 font-medium truncate mt-0.5">
+                            {secondary}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}

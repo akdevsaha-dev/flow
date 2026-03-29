@@ -1,8 +1,8 @@
-import { Server as HttpServer } from 'http';
+import { Server as HttpServer, IncomingMessage } from 'http';
 import { Server as HttpsServer } from 'https';
 import { WebSocketServer } from 'ws';
 import type { CustomWebSocket } from '@/types/websocket';
-import { broadcastToChat, joinChat, leaveChat, sendJson } from './helpers.ws';
+import { broadcastToChat, joinChat, leaveChat, sendJson, broadcastAll, onlineUsers, lastSeenAt } from './helpers.ws';
 import { db } from '@/config/db';
 import { messagesTable } from '@/models/message.model';
 import { chatsTable } from '@/models/chats.model';
@@ -17,24 +17,66 @@ import {
   leaveChatSchema,
   markReadSchema,
 } from '@/validations/ws/wsvalidation';
+import { cookies } from '@/utils/cookie';
+import { jwttoken } from '@/utils/jwt';
 
-export function attachWebsockerServer(server: HttpServer | HttpsServer) {
+export function attachWebSocketServer(server: HttpServer | HttpsServer) {
   const wss = new WebSocketServer({
     server,
     path: '/ws',
     maxPayload: 1024 * 1024,
   });
 
-  wss.on('connection', (socket: CustomWebSocket) => {
+  wss.on('connection', (socket: CustomWebSocket, req: IncomingMessage) => {
     socket.isAlive = true;
+    const token = cookies.getFromHeader(req.headers.cookie, 'token');
 
+    if (!token) {
+      socket.close(1008, 'Authentication required');
+      return;
+    }
+
+    let user: { id: string };
+    try {
+      user = jwttoken.verify(token);
+    } catch {
+      socket.close(1008, 'Invalid or expired session');
+      return;
+    }
+
+    socket.userId = user.id;
     socket.on('pong', () => {
       socket.isAlive = true;
+    });
+
+    // --- Presence: mark user online ---
+    onlineUsers.set(user.id, new Date().toISOString());
+
+    // Tell the newly connected client who is currently online
+    sendJson(socket, {
+      type: 'online_users_list',
+      data: { userIds: Array.from(onlineUsers.keys()) },
+    });
+
+    // Tell everyone else this user just came online
+    broadcastAll(wss, {
+      type: 'user_online',
+      data: { userId: user.id },
     });
 
     sendJson(socket, { type: 'Welcome' });
 
     socket.on('error', console.error);
+
+    socket.on('close', () => {
+      const seenAt = new Date().toISOString();
+      onlineUsers.delete(user.id);
+      lastSeenAt.set(user.id, seenAt);
+      broadcastAll(wss, {
+        type: 'user_offline',
+        data: { userId: user.id, lastSeenAt: seenAt },
+      });
+    });
 
     socket.on('message', async data => {
       let payload: any;
@@ -51,8 +93,8 @@ export function attachWebsockerServer(server: HttpServer | HttpsServer) {
           const parsed = sendMessageSchema.safeParse(payload);
           if (!parsed.success) return;
 
-          const { chatId, senderId, content } = parsed.data;
-
+          const { chatId, content } = parsed.data;
+          const senderId = socket.userId;
           const message = await db.transaction(async tx => {
             const [msg] = await tx
               .insert(messagesTable)
@@ -85,8 +127,8 @@ export function attachWebsockerServer(server: HttpServer | HttpsServer) {
           const parsed = typingStartSchema.safeParse(payload);
           if (!parsed.success) return;
 
-          const { chatId, userId } = parsed.data;
-
+          const { chatId } = parsed.data;
+          const userId = socket.userId;
           broadcastToChat(chatId, {
             type: 'user_typing_start',
             data: { userId },
@@ -98,8 +140,8 @@ export function attachWebsockerServer(server: HttpServer | HttpsServer) {
           const parsed = typingStopSchema.safeParse(payload);
           if (!parsed.success) return;
 
-          const { chatId, userId } = parsed.data;
-
+          const { chatId } = parsed.data;
+          const userId = socket.userId;
           broadcastToChat(chatId, {
             type: 'user_typing_stop',
             data: { userId },
@@ -134,8 +176,8 @@ export function attachWebsockerServer(server: HttpServer | HttpsServer) {
           const parsed = markReadSchema.safeParse(payload);
           if (!parsed.success) return;
 
-          const { chatId, userId, messageId } = parsed.data;
-
+          const { chatId, messageId } = parsed.data;
+          const userId = socket.userId;
           await db
             .update(participantsTable)
             .set({

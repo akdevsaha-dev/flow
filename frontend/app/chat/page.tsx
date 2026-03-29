@@ -8,25 +8,19 @@ import { ChatList } from "@/components/chat/ChatList";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { useRouter } from "next/navigation";
 import { SettingsPopup } from "@/components/chat/SettingsPopup";
-import { useContactStore } from "@/store/useContactStore";
+import { useChatStore } from "@/store/useChatStore";
 
 export default function ChatPage() {
   const authUser = useAuthStore((state) => state.authUser);
   const isCheckingAuth = useAuthStore((state) => state.isCheckingAuth);
   const checkAuth = useAuthStore((state) => state.checkAuth);
-  const fetchContacts = useContactStore((state) => state.fetchContacts);
   const [hasChecked, setHasChecked] = useState(false);
   const router = useRouter();
+  const selectedChatId = useChatStore((state) => state.selectedChatId);
 
   useEffect(() => {
     checkAuth().finally(() => setHasChecked(true));
   }, [checkAuth]);
-
-  useEffect(() => {
-    if (authUser) {
-      fetchContacts();
-    }
-  }, [authUser, fetchContacts]);
 
   useEffect(() => {
     if (hasChecked && !authUser) {
@@ -46,7 +40,9 @@ export default function ChatPage() {
 
   return (
     <>
-      <div className="flex h-screen w-full bg-[#eef3ee] overflow-hidden md:flex-row flex-col pb-16 md:pb-0">
+      <div
+        className={`flex h-screen w-full bg-[#eef3ee] overflow-hidden md:flex-row flex-col ${selectedChatId ? "pb-0" : "pb-16"} md:pb-0`}
+      >
         <NavSidebar />
         <ChatList />
         <ChatArea />
