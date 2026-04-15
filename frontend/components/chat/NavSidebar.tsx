@@ -23,28 +23,28 @@ export const NavSidebar = () => {
       </div>
 
       <div className="flex md:flex-col flex-row gap-2 md:gap-6 w-full items-center justify-around md:justify-start md:mt-8 flex-1">
-        <NavIcon 
-          icon={<MessageSquare size={22} />} 
-          label="chats" 
-          isActive={activeTab === 'chats'} 
+        <NavIcon
+          icon={<MessageSquare size={22} />}
+          label="chats"
+          isActive={activeTab === 'chats'}
           onClick={() => setActiveTab('chats')}
         />
-        <NavIcon 
-          icon={<Users size={22} />} 
-          label="groups" 
-          isActive={activeTab === 'groups'} 
+        <NavIcon
+          icon={<Users size={22} />}
+          label="groups"
+          isActive={activeTab === 'groups'}
           onClick={() => setActiveTab('groups')}
         />
-        <NavIcon 
-          icon={<MessageCircle size={22} />} 
-          label="unread" 
-          isActive={activeTab === 'unread'} 
+        <NavIcon
+          icon={<MessageCircle size={22} />}
+          label="unread"
+          isActive={activeTab === 'unread'}
           onClick={() => setActiveTab('unread')}
         />
-        <NavIcon 
-          icon={<Archive size={22} />} 
-          label="archive" 
-          isActive={activeTab === 'archive'} 
+        <NavIcon
+          icon={<Archive size={22} />}
+          label="archive"
+          isActive={activeTab === 'archive'}
           onClick={() => setActiveTab('archive')}
         />
         <div className="md:hidden">
@@ -62,14 +62,13 @@ export const NavSidebar = () => {
 
 const NavIcon = ({ icon, label, isActive = false, onClick }: { icon: React.ReactNode; label: string; isActive?: boolean; onClick?: () => void }) => {
   return (
-    <button 
+    <button
       onClick={onClick}
       className={`relative group p-3 rounded-2xl transition-all duration-300 ${isActive ? "bg-white shadow-sm text-black" : "text-neutral-500 hover:bg-white/60 hover:text-black"} overflow-visible`}
     >
       {icon}
       <span className="hidden md:flex absolute left-full ml-4 px-3 py-1.5 bg-black text-white text-[12px] font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl items-center">
         {label}
-        {/* Pointer/Arrow */}
         <div className="absolute right-full w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[5px] border-r-black"></div>
       </span>
     </button>

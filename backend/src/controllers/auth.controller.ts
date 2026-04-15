@@ -1,4 +1,5 @@
 import { authenticateUser, createUser } from '@/services/auth.service';
+import { getUserById } from '@/services/user.service';
 import { cookies } from '@/utils/cookie';
 import { jwttoken } from '@/utils/jwt';
 import { signInSchema, signUpSchema } from '@/validations/auth';
@@ -34,10 +35,15 @@ export const signup = async (req: Request, res: Response) => {
     });
   } catch (err: unknown) {
     let message = 'Something went wrong';
-    const status = 500;
+    let status = 500;
 
     if (err instanceof Error) {
-      message = err.message;
+      if (err.message === 'User already exists') {
+        message = err.message;
+        status = 409;
+      } else {
+        console.error('Signup error:', err);
+      }
     }
     return res.status(status).json({ error: message });
   }
@@ -71,10 +77,15 @@ export const signin = async (req: Request, res: Response) => {
     });
   } catch (err: unknown) {
     let message = 'Something went wrong';
-    const status = 500;
+    let status = 500;
 
     if (err instanceof Error) {
-      message = err.message;
+      if (['User not found.', 'Incorrect password'].includes(err.message)) {
+        message = err.message;
+        status = 401;
+      } else {
+        console.error('Signin error:', err);
+      }
     }
     return res.status(status).json({ error: message });
   }
@@ -94,9 +105,10 @@ export const signout = async (req: Request, res: Response) => {
   }
 };
 
-export const checkAuth = (req: Request, res: Response) => {
+export const checkAuth = async (req: Request, res: Response) => {
   try {
-    res.status(200).json({ user: req.user });
+    const user = await getUserById(req.user.id);
+    res.status(200).json({ user });
   } catch (error) {
     console.log(error);
     return res.status(500).json({

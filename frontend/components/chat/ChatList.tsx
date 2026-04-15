@@ -63,12 +63,21 @@ export const ChatList = () => {
   }, [userSearchQuery, modalView, searchUsers]);
 
   const filteredChats = chats.filter(chat => {
-    if (activeTab === 'groups' && !chat.isGroup) return false;
-
-    if (!chat.lastMessageId && !chat.lastMessage) return false;
-
     const name = chat.isGroup ? chat.groupName : chat.otherParticipants[0]?.name;
-    return name?.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = name?.toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+
+    switch (activeTab) {
+      case 'archive':
+        return chat.isArchived;
+      case 'groups':
+        return chat.isGroup && !chat.isArchived;
+      case 'unread':
+        return chat.unreadCount > 0 && !chat.isArchived;
+      case 'chats':
+      default:
+        return !chat.isGroup && !chat.isArchived;
+    }
   });
 
   return (
@@ -385,7 +394,7 @@ const ChatItem = ({ chat, isActive, onClick }: { chat: Chat, isActive: boolean, 
   const avatar = chat.isGroup ? name?.charAt(0) : (chat.otherParticipants[0]?.avatar ? <img src={chat.otherParticipants[0]?.avatar} alt="" className="w-full h-full rounded-full object-cover" /> : name?.charAt(0));
 
   const time = chat.lastMessageTime ? new Date(chat.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
-  const unreadCount = 0;
+  const unreadCount = chat.unreadCount || 0;
 
   return (
     <div
@@ -397,10 +406,10 @@ const ChatItem = ({ chat, isActive, onClick }: { chat: Chat, isActive: boolean, 
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center mb-0.5">
-          <h3 className="font-medium text-black truncate text-[15px]">{name}</h3>
-          <span className={`text-[11px] font-medium ${unreadCount > 0 ? 'text-black' : 'text-neutral-400'}`}>{time}</span>
+          <h3 className={`truncate text-[15px] ${unreadCount > 0 ? 'font-bold text-black' : 'font-medium text-neutral-800'}`}>{name}</h3>
+          <span className={`text-[11px] ${unreadCount > 0 ? 'font-bold text-black' : 'font-medium text-neutral-400'}`}>{time}</span>
         </div>
-        <p className={`text-sm truncate pr-2 ${unreadCount > 0 ? 'text-black font-normal' : 'text-neutral-500 font-light'}`}>
+        <p className={`text-sm truncate pr-2 ${unreadCount > 0 ? 'text-black font-bold' : 'text-neutral-500 font-medium'}`}>
           {chat.lastMessage || "No messages yet"}
         </p>
       </div>

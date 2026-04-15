@@ -92,15 +92,15 @@
       @apply md:pl-20 pl-8;
 
       .herotext {
-        @apply md:text-8xl text-6xl md:w-160;
+        @apply md:text-8xl text-5xl md:w-160;
       }
 
       .heroslogan {
-        @apply w-100 text-lg mt-5;
+        @apply w-full md:w-100 text-lg mt-5;
       }
 
       .features {
-        @apply absolute bottom-10 md:gap-10 gap-4 flex-center;
+        @apply absolute bottom-10 md:gap-10 gap-2 flex-wrap md:flex-nowrap flex-center w-full md:w-fit pr-8 md:pr-0;
       }
     }
   }
@@ -109,7 +109,7 @@
     @apply min-h-screen w-full bg-[#eef3ee] flex items-center justify-center px-6;
 
     .desc-text {
-      @apply w-full max-w-6xl text-center font-light leading-relaxed text-4xl;
+      @apply w-full max-w-6xl text-center font-light leading-relaxed text-2xl md:text-4xl;
     }
   }
 }

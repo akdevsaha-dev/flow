@@ -11,6 +11,8 @@ import {
   Ban,
   Archive as ArchiveIcon,
   X,
+  Check,
+  CheckCheck,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useContactStore } from "@/store/useContactStore";
@@ -291,7 +293,7 @@ export const ChatArea = () => {
       className={`flex-1 h-full flex-col bg-white shadow-[-10px_0_30px_rgb(0,0,0,0.02)] z-30 ${selectedChatId ? "flex" : "hidden md:flex"}`}
     >
       <div className="h-[88px] border-b border-neutral-100 flex items-center px-4 md:px-8 justify-between shrink-0 bg-white/80 backdrop-blur-md z-10 w-full">
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1 mr-2">
           <button
             onClick={() => setSelectedChat(null)}
             className="md:hidden p-2 hover:bg-neutral-100 rounded-full transition-colors"
@@ -301,17 +303,17 @@ export const ChatArea = () => {
           <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden bg-neutral-200/80 flex items-center justify-center text-neutral-600 font-medium text-base md:text-lg">
             {typeof avatar === "string" ? avatar?.toUpperCase() : avatar}
           </div>
-          <div>
+          <div className="min-w-0">
             {activeChat.isGroup ? (
               <button
                 type="button"
                 onClick={() => setIsGroupInfoModalOpen(true)}
-                className="font-semibold tracking-tight text-black text-lg text-left"
+                className="font-semibold tracking-tight text-black text-lg text-left truncate w-full block"
               >
                 {chatName}
               </button>
             ) : (
-              <h2 className="font-semibold tracking-tight text-black text-lg">
+              <h2 className="font-semibold tracking-tight text-black text-lg truncate">
                 {chatName}
               </h2>
             )}
@@ -319,12 +321,12 @@ export const ChatArea = () => {
               <div className="relative flex items-center justify-center w-2 h-2">
                 {otherTypingUsers.length > 0 ? (
                   <>
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75 animate-bounce"></span>
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
                   </>
                 ) : isOtherUserOnline ? (
                   <>
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75 animate-ping"></span>
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
                   </>
                 ) : (
@@ -332,27 +334,27 @@ export const ChatArea = () => {
                 )}
               </div>
 
-              <div className="h-4 flex items-center">
+              <div className="h-4 flex items-center min-w-0">
                 {otherTypingUsers.length > 0 ? (
-                  <span className="text-[13px] font-medium animate-pulse">
+                  <span className="text-[13px] font-medium animate-pulse truncate">
                     {otherTypingUsers.length === 1
                       ? "typing..."
                       : `${otherTypingUsers.length} people typing...`}
                   </span>
                 ) : activeChat.isGroup ? (
-                  <span className="text-[13px] text-neutral-500 font-medium">
+                  <span className="text-[13px] text-neutral-500 font-medium truncate">
                     {activeChat.otherParticipants.length + 1} members
                   </span>
                 ) : isOtherUserOnline ? (
-                  <span className="text-[13px] text-emerald-600 font-medium">
+                  <span className="text-[13px] text-emerald-600 font-medium truncate">
                     Active now
                   </span>
                 ) : lastSeenText ? (
-                  <span className="text-[13px] text-neutral-400 font-medium">
+                  <span className="text-[13px] text-neutral-400 font-medium truncate">
                     {lastSeenText}
                   </span>
                 ) : (
-                  <span className="text-[13px] text-neutral-400 font-medium">
+                  <span className="text-[13px] text-neutral-400 font-medium truncate">
                     Offline
                   </span>
                 )}
@@ -361,11 +363,11 @@ export const ChatArea = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-neutral-400">
-          <button className="p-3 hover:bg-neutral-100 hover:text-black rounded-full transition-all">
+        <div className="flex items-center gap-0.5 md:gap-2 text-neutral-400 shrink-0">
+          <button className="p-2 md:p-3 hover:bg-neutral-100 hover:text-black rounded-full transition-all">
             <Phone size={20} />
           </button>
-          <button className="p-3 hover:bg-neutral-100 hover:text-black rounded-full transition-all">
+          <button className="p-2 md:p-3 hover:bg-neutral-100 hover:text-black rounded-full transition-all">
             <Video size={20} />
           </button>
           <div className="w-px h-6 bg-neutral-200 mx-1"></div>
@@ -445,6 +447,21 @@ export const ChatArea = () => {
               minute: "2-digit",
             });
 
+            // Read Receipt Logic:
+            // Find the furthest message index any other participant has read
+            const readIndices = activeChat.otherParticipants
+              .map((p) => messages.findIndex((m) => m.id === p.lastReadMessageId))
+              .filter((idx) => idx !== -1);
+            const maxReadIndex =
+              readIndices.length > 0 ? Math.max(...readIndices) : -1;
+
+            const msgIndex = messages.findIndex((m) => m.id === msg.id);
+            const isRead = isMe && msgIndex <= maxReadIndex;
+
+            // Real-time Delivery Logic (using online status)
+            const isAnyOtherOnline = activeChat.otherParticipants.some(p => onlineUsers.has(p.id));
+            const isDelivered = isMe && !isRead && isAnyOtherOnline;
+
             return (
               <div
                 key={msg.id}
@@ -471,11 +488,26 @@ export const ChatArea = () => {
                       {msg.content}
                     </p>
                   </div>
-                  <span
-                    className={`text-[11px] text-neutral-400 font-medium ${isMe ? "mr-2" : "ml-2"}`}
-                  >
-                    {time}
-                  </span>
+                  {isMe ? (
+                    <div className="flex items-center gap-1.5 mr-1.5">
+                      <span className="text-[11px] text-neutral-400 font-medium">
+                        {time}
+                      </span>
+                      <div className="flex items-center">
+                        {isRead ? (
+                          <CheckCheck size={14} className="text-blue-500" />
+                        ) : isDelivered ? (
+                          <CheckCheck size={14} className="text-neutral-400" />
+                        ) : (
+                          <Check size={14} className="text-neutral-400" />
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-[11px] text-neutral-400 font-medium ml-2">
+                      {time}
+                    </span>
+                  )}
                 </div>
               </div>
             );

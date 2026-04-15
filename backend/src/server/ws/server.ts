@@ -49,16 +49,13 @@ export function attachWebSocketServer(server: HttpServer | HttpsServer) {
       socket.isAlive = true;
     });
 
-    // --- Presence: mark user online ---
     onlineUsers.set(user.id, new Date().toISOString());
 
-    // Tell the newly connected client who is currently online
     sendJson(socket, {
       type: 'online_users_list',
       data: { userIds: Array.from(onlineUsers.keys()) },
     });
 
-    // Tell everyone else this user just came online
     broadcastAll(wss, {
       type: 'user_online',
       data: { userId: user.id },
@@ -193,6 +190,7 @@ export function attachWebSocketServer(server: HttpServer | HttpsServer) {
           broadcastToChat(chatId, {
             type: 'message_read',
             data: {
+              chatId,
               userId,
               messageId,
             },

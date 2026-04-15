@@ -126,6 +126,7 @@ export const findChats = async ({ userId }: { userId: string }) => {
         username: p.user.username,
         avatar: p.user.avatarUrl,
         isBlocked: contact?.isBlocked || false,
+        lastReadMessageId: p.lastReadMessageId ?? null,
       };
     });
 

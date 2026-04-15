@@ -26,6 +26,11 @@ interface AuthStore {
   }) => Promise<boolean>;
   signin: (data: { email: string; password: string }) => Promise<boolean>;
   logout: () => Promise<boolean>;
+  updateProfile: (data: {
+    username?: string;
+    about?: string;
+    avatar_url?: string;
+  }) => Promise<boolean>;
 }
 
 export const useAuthStore = create<AuthStore>((set) => ({
@@ -110,6 +115,22 @@ export const useAuthStore = create<AuthStore>((set) => ({
       return false;
     } finally {
       set({ isLoggingOut: false });
+    }
+  },
+
+  updateProfile: async (data) => {
+    try {
+      const res = await api.patch("/users/profile", data);
+      set({ authUser: res.data.user });
+      toast.success("Profile updated successfully");
+      return true;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Failed to update profile";
+      toast.error(message);
+      return false;
     }
   },
 }));

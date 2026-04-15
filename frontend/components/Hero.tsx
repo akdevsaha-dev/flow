@@ -105,17 +105,17 @@ export const Hero = () => {
             and seamless collaboration.
           </div>
           <div className="features">
-            <div className="md:w-40 w-35 text-sm md:text-md h-10 flex-center rounded-full bg-neutral-100 pop">
+            <div className="md:w-40 w-auto px-4 text-sm md:text-md h-10 flex-center rounded-full bg-neutral-100 pop">
               High-performance
             </div>
-            <div className="md:w-40 w-35 text-sm md:text-md h-10 flex-center rounded-full bg-linear-to-r from-[#e4f2b1] via-[#d9f5aa] to-[#bfdbeb] pop">
+            <div className="md:w-40 w-auto px-4 text-sm md:text-md h-10 flex-center rounded-full bg-linear-to-r from-[#e4f2b1] via-[#d9f5aa] to-[#bfdbeb] pop">
               Revolutionary
             </div>
-            <div className="md:w-40 w-35 text-sm md:text-md h-10 flex-center rounded-full bg-neutral-100 pop">
+            <div className="md:w-40 w-auto px-4 text-sm md:text-md h-10 flex-center rounded-full bg-neutral-100 pop">
               Progressive
             </div>
           </div>
-          <div className="flex gap-5 mt-10">
+          <div className="flex gap-2 md:gap-5 mt-10">
             <div className="slide flex-between h-11 rounded-full w-30 pl-4 px-1 bg-black text-white">
               <div>Try Out</div>
               <div className="bg-white text-black flex-center rounded-full h-9 w-9">

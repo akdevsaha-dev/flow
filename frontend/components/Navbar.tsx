@@ -59,7 +59,7 @@ export const Navbar = () => {
   return (
     <header>
       <nav>
-        <div className="flex items-center gap-13">
+        <div className="flex items-center gap-4 md:gap-13">
           <div className="relative flex items-center justify-center w-6 h-6">
             <div className="w-6 green h-6 rounded-full bg-green-200"></div>
             <div className="absolute left -top-0.5 left-8 -translate-x-1/2 text-lg font-semibold">
@@ -67,7 +67,7 @@ export const Navbar = () => {
             </div>
           </div>
 
-          <div className="flex-center gap-1 contact bg-neutral-100 px-2 py-1 rounded-full">
+          <div className="hidden md:flex flex-center gap-1 contact bg-neutral-100 px-2 py-1 rounded-full">
             <div className="text-neutral-700 text-sm">Contact Us</div>
             <div className="h-2 w-2 rounded-full bg-green-200 mt-0.5"></div>
           </div>
@@ -79,14 +79,14 @@ export const Navbar = () => {
             </li>
           ))}
         </ul>
-        <div className="right">
-          <Link href={"/signin"} className="text-sm">
+        <Link href={"/signin"} className="right">
+          <div className="text-sm">
             Try Out
-          </Link>
+          </div>
           <div className="bg-green-200 flex-center rounded-full h-7 w-7">
             <ArrowUpRight size={20} />
           </div>
-        </div>
+        </Link>
       </nav>
     </header>
   );

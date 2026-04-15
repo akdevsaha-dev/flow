@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 export const SignInForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
+
   const signin = useAuthStore((state) => state.signin);
   const isSigningIn = useAuthStore((state) => state.isSigningIn);
   const signinError = useAuthStore((state) => state.signinError);
@@ -65,6 +65,9 @@ export const SignInForm = () => {
           required
         />
         {signinError && signinError.toLowerCase().includes("password") && (
+          <p className="text-sm text-red-500 mt-1">{signinError}</p>
+        )}
+        {signinError && !signinError.toLowerCase().includes("user") && !signinError.toLowerCase().includes("password") && (
           <p className="text-sm text-red-500 mt-1">{signinError}</p>
         )}
 

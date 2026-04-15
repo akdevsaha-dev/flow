@@ -25,3 +25,39 @@ export async function searchUsers(query: string, excludeUserId: string) {
 
   return users;
 }
+
+export async function updateUser(userId: string, data: { username?: string; avatarUrl?: string; about?: string }) {
+  const [updatedUser] = await db
+    .update(usersTable)
+    .set({
+      ...data,
+      updatedAt: new Date(),
+    })
+    .where(eq(usersTable.id, userId))
+    .returning({
+      id: usersTable.id,
+      username: usersTable.username,
+      email: usersTable.email,
+      avatarUrl: usersTable.avatarUrl,
+      about: usersTable.about,
+    });
+
+  return updatedUser;
+}
+
+export async function getUserById(userId: string) {
+  const [user] = await db
+    .select({
+      id: usersTable.id,
+      username: usersTable.username,
+      email: usersTable.email,
+      avatarUrl: usersTable.avatarUrl,
+      about: usersTable.about,
+      createdAt: usersTable.createdAt,
+    })
+    .from(usersTable)
+    .where(eq(usersTable.id, userId))
+    .limit(1);
+
+  return user;
+}

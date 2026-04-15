@@ -15,6 +15,7 @@ export interface ChatParticipant {
   username?: string;
   avatar: string | null;
   isBlocked: boolean;
+  lastReadMessageId?: string | null;
 }
 
 export interface Chat {
@@ -182,28 +183,31 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         chats: state.chats.map((chat) =>
           chat.id === message.chatId
             ? {
-                ...chat,
-                lastMessageId: message.id,
-                lastMessage: message.content,
-                lastMessageTime: message.createdAt,
-                lastMessageSenderId: message.senderId,
-              }
+              ...chat,
+              lastMessageId: message.id,
+              lastMessage: message.content,
+              lastMessageTime: message.createdAt,
+              lastMessageSenderId: message.senderId,
+            }
             : chat
         ),
       };
     });
   },
 
-  markMessageReadLocally: (chatId: string, messageId: string, _userId: string) => {
-    // Update the chat's lastReadMessageId locally (no UI impact yet, but ready for future badges)
+  markMessageReadLocally: (chatId: string, messageId: string, userId: string) => {
     set((state) => ({
-      chats: state.chats.map((chat) =>
-        chat.id === chatId ? { ...chat } : chat
-      ),
+      chats: state.chats.map((chat) => {
+        if (chat.id !== chatId) return chat;
+
+        // If it's a message read by someone else, update their lastReadMessageId
+        const updatedParticipants = chat.otherParticipants.map((p) =>
+          p.id === userId ? { ...p, lastReadMessageId: messageId } : p
+        );
+
+        return { ...chat, otherParticipants: updatedParticipants };
+      }),
     }));
-    // Suppress unused variable warning — userId kept for future unread-badge logic
-    void _userId;
-    void messageId;
   },
 
   setOnlineUsers: (userIds: string[]) => {
